@@ -21,9 +21,9 @@ int main (void) {
     int buffer[1];
     buffer[0] = 1; // S value
     unsigned int buffertosend[1];
-    char response[9000];
+    char response[90];
 
-    printf("[*] Creating a socket...\n");
+   // printf("[*] Creating a socket...\n");
     if ((client = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
         printf("    => Error in creating UDP socket\n");
         exit(1);
@@ -46,41 +46,42 @@ int main (void) {
 //        exit(1);
 //    }
 
-    printf("[*] Validating IP Address...\n");
+   // printf("[*] Validating IP Address...\n");
     if (inet_pton(AF_INET, "149.171.36.173", &serv_addr.sin_addr) <= 0) {
         printf("    => Invalid Address\n");
         exit(1);
     }
     int i = 0;
     unsigned int S = 1;
-    cout << *buffer << endl;
+//    cout << *buffer << endl;
     buffertosend[0] = htonl(buffer[0]);
     //buffertosend[0] = buffer[0];
-    cout << *buffertosend << endl;
+//    cout << *buffertosend << endl;
     while (i < 30) {
-        printf("[*] Attempting to send message via UDP\n");
+        //printf("[*] Attempting to send message via UDP\n");
         //if (sendto(client, buffer.c_str(), buffer.length(), 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
         if (sendto(client, buffertosend,sizeof(buffertosend), 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
             printf("    => Error in sending the message\n");
             exit(1);
         }
-        printf("[*] Awaiting for response from the server...\n");
+     //   printf("[*] Awaiting for response from the server...\n");
         socklen_t addrlen = sizeof(serv_addr);
         if (recvfrom(client, response, sizeof(response), 0, (struct sockaddr *)&serv_addr, &addrlen) < 0) {
             printf("    => Error in receiving the message\n");
             exit(1);
         }
-        printf("[*] Snooped message\n");
+       // printf("[*] Snooped message\n");
         //cout << response << endl;
         // Response has both the 8 byte packet identifier and the message.
         // convert 8 byte big endian to little endian
         unsigned long long int identifier = *(unsigned long long int*)response;
-        printf("0x%llx\n", identifier); 
+        printf("# 0x%llx:   ", identifier);
         char *msg = (char*)(response+8);
-        cout << msg << endl;
+        cout << "\"" <<msg << "\"" << endl;
+        memset(response, 0, sizeof(response)+1);
+        memset(msg, 0, sizeof(msg)+1);
         i++;
     }
-
     //printf("[*] Awaiting for response from the server...\n");
     //socklen_t addrlen = sizeof(serv_addr);
     //recvfrom(client, response, sizeof(response), 0, (struct sockaddr *)&serv_addr, &addrlen);
