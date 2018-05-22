@@ -19,7 +19,7 @@ int main (void) {
     char host[1024] = "skunksmail.ee.unsw.edu.au";
     //string buffer;
     int buffer[1];
-    buffer[0] = 1; // S value
+    buffer[0] = 10; // S value
     unsigned int buffertosend[1];
     char response[90];
 
@@ -52,12 +52,11 @@ int main (void) {
         exit(1);
     }
     int i = 0;
-    unsigned int S = 1;
 //    cout << *buffer << endl;
     buffertosend[0] = htonl(buffer[0]);
     //buffertosend[0] = buffer[0];
 //    cout << *buffertosend << endl;
-    while (i < 30) {
+    while (i < 20) {
         //printf("[*] Attempting to send message via UDP\n");
         //if (sendto(client, buffer.c_str(), buffer.length(), 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
         if (sendto(client, buffertosend,sizeof(buffertosend), 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
