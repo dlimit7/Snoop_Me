@@ -70,6 +70,7 @@ void *snooper(void* serv_info) {
 }
 
 void receive(ServerInfo *server_info) {
+    pthread_mutex_t* lock;
     fd_set readfds;
     int client_fd = server_info->get_socket();
     struct sockaddr_in serv_addr = server_info->get_sockstruct();
@@ -87,15 +88,14 @@ void receive(ServerInfo *server_info) {
             cout << "[-] select failed: " << errno << endl;
             exit(1);
         }
+        pthread_mutex_lock(lock);
         socklen_t addrlen = sizeof(serv_addr);
         if (recvfrom(client_fd, response, sizeof(response), 0, (struct sockaddr *)&serv_addr, &addrlen) < 0) {
             printf("    => Error in receiving the message\n");
             exit(1);
         }
+        //cout << response << endl;
         char *msg = (char*)(response+8);
-        cout << "\"" <<msg << "\"" << endl;
-        memset(response, 0, 20);
-        memset(msg, 0, 20);
         // Response has both the 8 byte packet identifier and the message.
         // Convert 8 byte big endian to little endian
         unsigned int lo = *(unsigned int *)response;
@@ -112,6 +112,10 @@ void receive(ServerInfo *server_info) {
         identifier = identifier << 32;
         identifier |= hi;
         printf("Packet Identifier # 0x%llx:   ", identifier);
+        cout << "\"" <<msg << "\"" << endl;
+        memset(response, 0, 20);
+        memset(msg, 0, 20);
+        pthread_mutex_unlock(lock);
     }
 }
 
