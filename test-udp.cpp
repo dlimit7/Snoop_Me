@@ -13,11 +13,13 @@
 
 using namespace std;
 
+int duplicate(char msgArray[500][500]);
+
 int main (void) {
     int client;
-    int portNo = 8117;
+    int portNo = 8119;
     //char host[1024] = "skunksmail.ee.unsw.edu.au";
-    unsigned int S[1] = {htonl(10)}; // S value
+    unsigned int S[1] = {htonl(50)}; // S value
     char response[90];
 
    // printf("[*] Creating a socket...\n");
@@ -37,14 +39,17 @@ int main (void) {
     client_addr.sin_addr.s_addr = htonl(INADDR_ANY); // takes local host address... need to set -multi_snooper flag
     client_addr.sin_port = htons(8001);
 
-    printf("[*] Validating IP Address...\n");
+    //printf("[*] Validating IP Address...\n");
     if (inet_pton(AF_INET, "149.171.36.173", &serv_addr.sin_addr) <= 0) {
         printf("    => Invalid Address\n");
         exit(1);
     }
-    int i = 0;
+    int i = 0, x = 0, y = 0;
+    unsigned long long int identArray[9000];
+    string str;
+    char msgArray[500][500];
     while (i < 30) {
-        if (sendto(client, S,sizeof(S), 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+        if (sendto(client, S,sizeof(100), 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
             printf("    => Error in sending the message\n");
             exit(1);
         }
@@ -69,15 +74,45 @@ int main (void) {
         identifier |= lo;
         identifier = identifier << 32;
         identifier |= hi;
-        printf("Packet Identifier # 0x%llx:   ", identifier);
+        printf("# 0x%llx:   ", identifier);
 
         // The message
         char *msg = (char*)(response+8);
-        cout << "\"" <<msg << "\"" << endl;
+        cout << "\"" << msg << "\"" << endl;
+        identArray[i] = identifier;
+        memcpy(msgArray[i], msg, 500);
         memset(response, 0, 20);
         memset(msg, 0, 20);
         i++;
     }
+    while (x < i) {
+        //cout << identArray[x] << endl;
+        printf("0x%llx ", identArray[x]);
+        cout << "\"" << msgArray[x] << "\"" << endl;
+        x++;
+    }
+    y = duplicate(msgArray);
+    cout << "index is: " <<y << endl;
     close(client);
     return 0;
+}
+
+int duplicate(char msgArray[500][500]) {
+    int currindex, nextindex;
+    int i = 2;
+    char *tmp;
+    tmp = msgArray[1];
+    cout << tmp << endl;
+    currindex = i;
+
+    while (i < 500) {
+        if (msgArray[i] == tmp) {
+            nextindex = i;
+            i = 500;
+        }
+        i++;
+    }
+    //nextindex = i;
+
+    return nextindex;
 }
