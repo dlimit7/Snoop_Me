@@ -78,8 +78,6 @@ int main (int argc, char *argv[]) {
     int httpC;
     char* portNo = strdup("8118");
     char* ip = strdup("149.171.36.173");
-    struct hostent *httpS;
-    struct sockaddr_in serv_addr;
     printf("[*] Creating a socket for server comm...\n");
     if ((httpC = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         printf("    => Couldnt create socket for HTTP client\n");
@@ -102,29 +100,44 @@ int main (int argc, char *argv[]) {
         exit(1);
     }
 
-    int readSockets[3];
-    ServerInfo master_info;
+    int readSockets_fd[3];
+    int slave_fd[3];
     struct sockaddr_in master_addr[3];
     char *port_i[3];
+    char *my_ip = strdup("192.168.43.49");
     port_i[0] = strdup("1500");
     port_i[1]= strdup("1501");
     port_i[2] = strdup("1502");
     printf("[*] Creating read sockets\n");
-    for (int i = 0; i < 3; i++) {
-        if ((readSockets[i] = socket(AF_INET, SOCK_STREAM, 0))<0) {
+    for (int i = 0; i < 1; i++) {
+        if ((readSockets_fd[i] = socket(AF_INET, SOCK_STREAM, 0))<0) {
             printf("    => Couldnt create socket for slaves\n");
             exit(1);
-        } else {
-            master_info[i] = ServerInfo(ip, port_i[i], readSockets[i]);
-            struct sockaddr_in master_addr[i] = (master_info[i]).get_sockstruct();
-            if ((bind(readSockets[i], (struct sockaddr*)&master_addr[i], sizeof(master_addr[i])))<0) {
-                cout << "   => Error binding connection... " << i << endl;
-                exit(1);
-            }   
-        }  
+        } 
+        if (i == 0) {
+            ServerInfo master_info0 = ServerInfo(my_ip, port_i[0], readSockets_fd[0]);
+            master_addr[i] = master_info0.get_sockstruct();
+        } else if (i == 1) {
+            ServerInfo master_info1 = ServerInfo(my_ip, port_i[1], readSockets_fd[1]);
+            master_addr[i] = master_info1.get_sockstruct();
+        } else if (i == 2) {
+            ServerInfo master_info2 = ServerInfo(my_ip, port_i[2], readSockets_fd[2]);
+            master_addr[i] = master_info2.get_sockstruct();
+        } 
+
+        socklen_t size = sizeof(master_addr[i]);
+        if ((bind(readSockets_fd[i], (struct sockaddr*)&master_addr[i], sizeof(master_addr[i])))<0) {
+            cout << "   => Error binding connection... " << i << endl;
+            exit(1);
+        }   
+        listen(readSockets_fd[i], 1);
+        slave_fd[i] = accept(readSockets_fd[i], (struct sockaddr*)&master_addr[i], &size);
+        if (slave_fd[i] < 0) {
+            cout << "   => Error accepting incoming client" << endl;
+            exit(1);
+        }
     }
     printf("[*] Read sockets created!\n");
-
 
 
     post_answer(argv[1], &http_server);
