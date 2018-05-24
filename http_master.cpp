@@ -78,6 +78,9 @@ int main (int argc, char *argv[]) {
     int httpC;
     char* portNo = strdup("8118");
     char* ip = strdup("149.171.36.173");
+    if (argc != 2) {
+        cout << "Erorrrr not enough args" << endl;
+    }
     printf("[*] Creating a socket for server comm...\n");
     if ((httpC = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         printf("    => Couldnt create socket for HTTP client\n");
@@ -139,7 +142,11 @@ int main (int argc, char *argv[]) {
     }
     printf("[*] Read sockets created!\n");
 
-
+    char buffer[30];
+    while (1) {
+        recv(slave_fd[0], buffer, sizeof(buffer),0);
+        cout << buffer << endl;
+    }
     post_answer(argv[1], &http_server);
 
     close(httpC);
