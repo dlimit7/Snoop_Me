@@ -34,18 +34,14 @@ class ServerInfo
     int socket_fd;
     string server_ip;
     short server_port;
-
     public:
-    ServerInfo(char *serv_ip, char *serv_port, int socket) 
-    {
+    ServerInfo(char *serv_ip, char *serv_port, int socket) {
         server_ip = (string)serv_ip;
         string tmp = (string)serv_port;
         server_port = stoi(tmp);
         socket_fd = socket;
     }
-
-    struct sockaddr_in get_sockstruct()
-    {
+    struct sockaddr_in get_sockstruct() {
         struct sockaddr_in tmp;
         memset(&tmp, 0, sizeof(tmp));
         tmp.sin_family = AF_INET;
@@ -54,19 +50,13 @@ class ServerInfo
         
         return tmp;
     }
-
-    int get_socket()
-    {
+    int get_socket() {
         return socket_fd;
     }
-
-    string get_ip()
-    {
+    string get_ip() {
         return server_ip;
     }
-
-    short get_port()
-    {
+    short get_port() {
         return server_port;
     }
 };
@@ -111,8 +101,8 @@ int main (int argc, char *argv[]) {
     port_i[0] = strdup("1500");
     port_i[1]= strdup("1501");
     port_i[2] = strdup("1502");
-    printf("[*] Creating read sockets\n");
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < 2; i++) {
+        printf("[*] Creating read socket %d\n", i);
         if ((readSockets_fd[i] = socket(AF_INET, SOCK_STREAM, 0))<0) {
             printf("    => Couldnt create socket for slaves\n");
             exit(1);
@@ -127,14 +117,16 @@ int main (int argc, char *argv[]) {
             ServerInfo master_info2 = ServerInfo(my_ip, port_i[2], readSockets_fd[2]);
             master_addr[i] = master_info2.get_sockstruct();
         } 
-
+        cout << "binding" << endl;
         socklen_t size = sizeof(master_addr[i]);
         if ((bind(readSockets_fd[i], (struct sockaddr*)&master_addr[i], sizeof(master_addr[i])))<0) {
             cout << "   => Error binding connection... " << i << endl;
             exit(1);
         }   
+        cout << "listening" << endl;
         listen(readSockets_fd[i], 1);
         slave_fd[i] = accept(readSockets_fd[i], (struct sockaddr*)&master_addr[i], &size);
+        // the accepted slave_fd descripter had been set to non blocking. I think this property maintains.
         if (slave_fd[i] < 0) {
             cout << "   => Error accepting incoming client" << endl;
             exit(1);
@@ -142,11 +134,17 @@ int main (int argc, char *argv[]) {
     }
     printf("[*] Read sockets created!\n");
 
-    char buffer[30];
+    char buffer1[30];
+    char buffer2[30];
     while (1) {
-        recv(slave_fd[0], buffer, sizeof(buffer),0);
-        cout << buffer << endl;
+        //memset(buffer1, 0, sizeof(buffer1));
+        recv(slave_fd[0], buffer1, sizeof(buffer1),0);
+        printf("%s\n", buffer1);
+        recv(slave_fd[1], buffer2, sizeof(buffer2), 0);
+        printf("%s\n", buffer2);
     }
+    // Algorithm here
+
     post_answer(argv[1], &http_server);
 
     close(httpC);

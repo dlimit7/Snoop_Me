@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <queue>
+#include <mutex>
 #include <string.h>
 #include <string>
 #include <vector>
@@ -16,9 +17,8 @@
 #include <poll.h> // int poll(struct pollfd *fds, nfds_t nfds, int timeout);
 
 using namespace std;
+void warp(char*);
 
-
-//char host[1024] = "skunksmail.ee.unsw.edu.au";
 class ServerInfo
 {
     private:
@@ -70,15 +70,14 @@ void *snooper(void* serv_info) {
 }
 
 void receive(ServerInfo *server_info, ServerInfo *master_info) {
-    struct sockaddr_in master_addr = master_info->get_sockstruct();
-    int master_fd = master_info->get_socket();
 
-    pthread_mutex_t* lock;
+    int master_fd = master_info->get_socket();
+    mutex mtx;
     fd_set readfds;
     int client_fd = server_info->get_socket();
     struct sockaddr_in serv_addr = server_info->get_sockstruct();
     struct timeval timeout;
-    char response[30] = {0};
+    char *response = (char*)calloc(30, sizeof(char));
     int ret;
     while (1) {
         //printf("[*] Awaiting for response from the server...\n");
@@ -91,13 +90,22 @@ void receive(ServerInfo *server_info, ServerInfo *master_info) {
             cout << "[-] select failed: " << errno << endl;
             exit(1);
         }
-        pthread_mutex_lock(lock);
+        mtx.lock();
         socklen_t addrlen = sizeof(serv_addr);
         if (recvfrom(client_fd, response, sizeof(response), 0, (struct sockaddr *)&serv_addr, &addrlen) < 0) {
             printf("    => Error in receiving the message\n");
             exit(1);
         }
-        //cout << response << endl;
+        cout << response << endl;
+        warp(&response[0]);
+        send(master_fd, response, sizeof(response), 0);
+        cout << response << endl;
+        memset(response, 0, 20);
+        mtx.unlock();
+    }
+}
+
+void warp (char* response) {
         char *msg = (char*)(response+8);
         // Response has both the 8 byte packet identifier and the message.
         // Convert 8 byte big endian to little endian
@@ -114,16 +122,12 @@ void receive(ServerInfo *server_info, ServerInfo *master_info) {
         identifier |= lo;
         identifier = identifier << 32;
         identifier |= hi;
-        printf("Packet Identifier # 0x%llx:   ", identifier);
+        printf("Packet Id #: 0x%llx:   ", identifier);
         cout << "\"" <<msg << "\"" << endl;
-        // sendto
-        //
-        send(master_fd, response, sizeof(response), 0);
-        memset(response, 0, 20);
-        memset(msg, 0, 20);
-        pthread_mutex_unlock(lock);
-    }
-}
+        unsigned long long int * temp = (unsigned long long int *) response;
+        *temp = identifier;
+
+}    
 
 
 int main (int argc, char*argv[]) {

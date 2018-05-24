@@ -7,6 +7,7 @@
 #include <string.h>
 #include <string>
 #include <vector>
+#include <mutex>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
@@ -17,8 +18,8 @@
 
 using namespace std;
 
+void warp(char*);
 
-//char host[1024] = "skunksmail.ee.unsw.edu.au";
 class ServerInfo
 {
     private:
@@ -70,12 +71,12 @@ void *snooper(void* serv_info) {
 }
 
 void receive(ServerInfo *server_info) {
-    pthread_mutex_t* lock;
+    mutex mtx;
     fd_set readfds;
     int client_fd = server_info->get_socket();
     struct sockaddr_in serv_addr = server_info->get_sockstruct();
     struct timeval timeout;
-    char response[30] = {0};
+    char response[30];
     int ret;
     while (1) {
         //printf("[*] Awaiting for response from the server...\n");
@@ -88,34 +89,24 @@ void receive(ServerInfo *server_info) {
             cout << "[-] select failed: " << errno << endl;
             exit(1);
         }
-        pthread_mutex_lock(lock);
+        mtx.lock();
         socklen_t addrlen = sizeof(serv_addr);
         if (recvfrom(client_fd, response, sizeof(response), 0, (struct sockaddr *)&serv_addr, &addrlen) < 0) {
             printf("    => Error in receiving the message\n");
             exit(1);
         }
-        //cout << response << endl;
-        char *msg = (char*)(response+8);
-        // Response has both the 8 byte packet identifier and the message.
-        // Convert 8 byte big endian to little endian
-        unsigned int lo = *(unsigned int *)response;
-        unsigned int  hi =  *(unsigned int*)(response+8);
-        unsigned long long int identifier = *(unsigned long long int*)response;
-        //printf("# 0x%llx:   \n", identifier);
-        lo = (unsigned int) (identifier);
-        lo = ntohl(lo);
-        identifier = identifier >> 32;
-        hi = (unsigned int) (identifier);
-        hi = ntohl(hi);
-        identifier = 0;
-        identifier |= lo;
-        identifier = identifier << 32;
-        identifier |= hi;
-        printf("Packet Identifier # 0x%llx:   ", identifier);
-        cout << "\"" <<msg << "\"" << endl;
+        ///cout << "response " << response << endl;
+        warp(&response[0]);
+        
+        // Packet processing
+        char * msg = response+8;
+        unsigned long long int id = *(unsigned long long int *)response;
+
+
+
+
         memset(response, 0, 20);
-        memset(msg, 0, 20);
-        pthread_mutex_unlock(lock);
+        mtx.unlock();
     }
 }
 
@@ -125,7 +116,6 @@ int main (int argc, char*argv[]) {
     //int portNo = 8119;
     int client_fd;
     int ret=0;
-
 
     if (argc != 3) {
         cout << "[-] Usage: " << argv[0] << " <server_ip> <server_port>" << endl;
@@ -169,3 +159,31 @@ int main (int argc, char*argv[]) {
 
     return 0;
 }
+
+
+
+void warp (char * response) {
+        char *msg = response+8;
+        //cout << " MESSAGE\"" <<msg << "\"" << endl;
+        // Response has both the 8 byte packet identifier and the message.
+        // Convert 8 byte big endian to little endian
+        unsigned int lo = *(unsigned int *)response;
+        unsigned int  hi =  *(unsigned int*)(response+8);
+        unsigned long long int identifier = *(unsigned long long int*)response;
+        //printf("# 0x%llx:   \n", identifier);
+        lo = (unsigned int) (identifier);
+        lo = ntohl(lo);
+        identifier = identifier >> 32;
+        hi = (unsigned int) (identifier);
+        hi = ntohl(hi);
+        identifier = 0;
+        identifier |= lo;
+        identifier = identifier << 32;
+        identifier |= hi;
+        printf("Packet Id #: 0x%llx:   ", identifier);
+        unsigned long long int * temp = (unsigned long long int *) response;
+        *temp = identifier;
+        cout << "\"" << msg << "\"" << endl;
+}
+
+
