@@ -67,9 +67,12 @@ void *snooper(void* serv_info) {
             exit(1);
         }
     }
-} 
+}
 
-void receive(ServerInfo *server_info) {
+void receive(ServerInfo *server_info, ServerInfo *master_info) {
+    struct sockaddr_in master_addr = master_info->get_sockstruct();
+    int master_fd = master_info->get_socket();
+
     pthread_mutex_t* lock;
     fd_set readfds;
     int client_fd = server_info->get_socket();
@@ -114,6 +117,8 @@ void receive(ServerInfo *server_info) {
         printf("Packet Identifier # 0x%llx:   ", identifier);
         cout << "\"" <<msg << "\"" << endl;
         // sendto
+        //
+        send(master_fd, response, sizeof(response), 0);
         memset(response, 0, 20);
         memset(msg, 0, 20);
         pthread_mutex_unlock(lock);
@@ -140,7 +145,7 @@ int main (int argc, char*argv[]) {
     printf("[*] Successfully created the socket\n");
     // set file descriptor to nonblocking io mode
     int opt = 1;
-    ret = ioctl(client_fd, FIONBIO, &opt); 
+    ret = ioctl(client_fd, FIONBIO, &opt);
     if (ret == -1) {
         cout << "[-] ioctl failed: " << errno << endl;
         return -1;
@@ -153,17 +158,18 @@ int main (int argc, char*argv[]) {
         cout << "    => Error in creating slave socket" << endl;
         exit(1);
     }
-    cout << "[*] Successfully created the socket" << endl;  
-    ServerInfo slave_info = ServerInfo(argv[3], argv[4], slave);
+    cout << "[*] Successfully created the socket" << endl;
+    ServerInfo master_info = ServerInfo(argv[3], argv[4], slave);
     cout << "[*] Awaiting for master to acccept connection" << endl;
-    struct sockaddr_in master_addr = slave_info.get_sockstruct();
+    struct sockaddr_in master_addr = master_info.get_sockstruct();
     if (connect(slave, (struct sockaddr *)&master_addr, sizeof(master_addr)) < 0) {
         cout << "   => Error establishing connection" << endl;
         exit(1);
     }
+    cout << "[*] Connection established" << endl;
     pthread_t send;
     pthread_create(&send, NULL, snooper, (void*)&server_info);
-    receive(&server_info);
+    receive(&server_info, &master_info);
 
 /*
     serv_addr.sin_family = AF_INET;
