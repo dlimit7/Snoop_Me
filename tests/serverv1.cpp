@@ -39,7 +39,7 @@ int main() {
     struct sockaddr_in server_addr;
     socklen_t size;
     server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = htons(INADDR_ANY);
+    server_addr.sin_addr.s_addr = inet_addr("10.248.102.153");//INADDR_ANY;
     server_addr.sin_port = htons(port);
     if ((bind(server, (struct sockaddr*) &server_addr, sizeof(server_addr))) < 0) {
         cout << "   => Error binding connection..." << endl;
