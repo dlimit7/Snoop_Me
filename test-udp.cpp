@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <queue>
+#include <map>
 #include <string.h>
 #include <string>
 #include <vector>
@@ -78,6 +79,12 @@ void receive(ServerInfo *server_info) {
     struct timeval timeout;
     char response[30];
     int ret;
+    char * msg;
+    map<string, unsigned long long int>msgtoid;
+    unsigned int num_packets = 0;
+    unsigned int diff_array[10];
+    unsigned int diff;
+    int i = 0;
     while (1) {
         //printf("[*] Awaiting for response from the server...\n");
         FD_ZERO(&readfds);
@@ -98,14 +105,63 @@ void receive(ServerInfo *server_info) {
         ///cout << "response " << response << endl;
         warp(&response[0]);
         
-        // Packet processing
-        char * msg = response+8;
+        /**** 
+         * 
+         *    Packet Processing
+         *
+         * ***/
+        msg = response+8;
+        char first_char = msg[0];
+        //string msg;
+        //msg.assign(message, 30);
+        //cout << "message is \"" << msg << "\"" << endl; 
+
         unsigned long long int id = *(unsigned long long int *)response;
+        if (msgtoid.count(msg) < 1) {
+            msgtoid[msg] = id;
+            num_packets++;
+        }   
+        if (first_char == 0x4) {
+            //printf("id 0x%llx - msgtoid[msg] 0x%llx\n\n\n\n\n", id, msgtoid[msg]);
+            if ((diff = (unsigned int)(id - msgtoid[msg])) > 0) {
+                if (diff == 0) exit(1);
+                //while(1);
+                // update id and record diff
+                msgtoid[msg] = id;
+                diff_array[i++] = diff;
+            }
+        }
+        if (i==10) {
+            //printf("num_packs = %d\n", num_packets);
+            //printf("\n\n\n\n\n\n");
+            i = 0;
+            // find lowest common divisor in diff_array
+            unsigned int min = 0xfff;
+            cout << min << endl;
+            unsigned int j = 0;
+            for (j = 0; j < 10; j++) {
+                if (diff_array[j] < min) {
+                    min = diff_array[j];
+                    //printf("min is %d j is %d diff[j]  is %d\n\n\n\n\n", min, j, diff_array[j]);   
+                }
+            }
+            int k;
+            j = 2;
+            while (j <= min) {
+               if (j >= num_packets) {
+                   for (k = 0; k < 10; k++) {
+                       if (diff_array[k] % j) break;
+                   }
+               }
+               if (k == 10) break;
+               j++;
+            }
+            printf("number of packets = %d\n", j);
+            while(1);
 
-
-
-
-        memset(response, 0, 20);
+        }
+        
+        memset(response, 0, 30);
         mtx.unlock();
     }
 }
@@ -126,6 +182,7 @@ int main (int argc, char*argv[]) {
         printf("    => Error in creating UDP socket\n");
         exit(1);
     }
+    printf("[*] Socket successfully created\n");
     // set file descriptor to nonblocking io mode
     int opt = 1;
     ret = ioctl(client_fd, FIONBIO, &opt); 
@@ -133,7 +190,7 @@ int main (int argc, char*argv[]) {
         cout << "[-] ioctl failed: " << errno << endl;
         return -1;
     }
-
+    cout << "Starting snooper and receiver" << endl;
     ServerInfo server_info = ServerInfo(argv[1], argv[2], client_fd);
     pthread_t send;
     pthread_create(&send, NULL, snooper, (void*)&server_info);
