@@ -139,33 +139,34 @@ int main (int argc, char *argv[]) {
     //char buffer2[30];
     char *answer = NULL;
     int * checklist = NULL;
-    char * msg;
+    char msg[22];
     map<string, unsigned long long int>msgtoid;
     map<string, unsigned int>msg_map;
     unsigned int num_packets = 0;
     unsigned int diff_array[10];
     unsigned int diff;
-    int i = 0;
-    int num_packets_found = 0;
+    unsigned int i = 0;
+    unsigned int num_packets_found = 0;
     char ** message= NULL;
     unsigned int offset = 0;
     unsigned int index;
-    int count = 0;
+    unsigned int count = 0;
     int offsetFound = -1;
-    int k;
+    unsigned int k;
     while (1) {
-        //memset(buffer1, 0, sizeof(buffer1));
+        memset(buffer1, 0, sizeof(buffer1));
         recv(slave_fd[0], buffer1, sizeof(buffer1),0);
-        printf("%s\n", buffer1);
+        //printf("buffer content %s\n", buffer1);
 
-        msg = buffer1+8;
+        strcpy(msg,buffer1+8);
         char first_char = msg[0];
-        //cout << "message is \"" << msg << "\"" << endl; 
+        cout << "message is \"" << msg << "\"" << endl; 
         unsigned long long int id = *(unsigned long long int *)buffer1;
-        if (!num_packets_found) { 
+        if (num_packets_found == 0) { 
             if (msgtoid.count(msg) < 1) {
                 // If i havn't seen this message before, note it, increment num packs
                 msgtoid[msg] = id;
+                
                 num_packets++;
             }   
             if (first_char == 0x4) {
@@ -178,14 +179,13 @@ int main (int argc, char *argv[]) {
                     diff_array[i++] = diff;
                 }
             }
-            if (i == 10) {
+            if (i == 6) {
                 printf("num_packs = %d\n", num_packets);
-                i = 0;
                 // find lowest common divisor in diff_array
-                unsigned int min = 0xfff;
+                unsigned int min = 0xffff;
                 cout << min << endl;
                 unsigned int j = 0;
-                for (j = 0; j < 10; j++) {
+                for (j = 0; j < i; j++) {
                     if (diff_array[j] < min) {
                         min = diff_array[j];
                         printf("min is %d j is %d diff[j]  is %d\n\n\n\n\n", min, j, diff_array[j]);   
@@ -197,11 +197,11 @@ int main (int argc, char *argv[]) {
                         j = 1;
                         break;
                     } else if (j >= num_packets) {
-                        for (k = 0; k < 10; k++) {
+                        for (k = 0; k < i; k++) {
                             if (diff_array[k] % j) break;
                         }
                     }
-                    if (k == 10) break;
+                    if (k == i) break;
                     j++;    
                 }
                 printf("number of packets = %d\n", j);
@@ -214,6 +214,7 @@ int main (int argc, char *argv[]) {
                 for (k = 0; k < num_packets_found; k++) {
                     message[k] = (char*)malloc(20);
                 }
+                i = 0;
            }
         } else {
             /*
@@ -262,16 +263,26 @@ int main (int argc, char *argv[]) {
                 }
                 printf("Final answer: %s\n", answer);
                 post_answer(answer, &http_server);
-                while(1);
+                // reset
+                recv(slave_fd[0], buffer1, sizeof(buffer1),0);
+                recv(slave_fd[0], buffer1, sizeof(buffer1),0);
+                i = 0;
+                num_packets_found = 0;
+                num_packets = 0;
+                offset = 0;
+                offsetFound = -1;
+                count = 0;
+                msgtoid.clear();
+                msg_map.clear();
+                //while(1);
             }
         }
 
     }
-    // Algorithm here
-
 
 
     close(httpC);
+    close(readSockets_fd[0]);
 
     return 0;
 }
@@ -340,6 +351,7 @@ void post_answer(char *answer, ServerInfo* server) {
     cout << "==================================" << endl;
     cout << endl;
 
+    /*
     printf("[*] Sending new line to complete Authorization...\n");
     buffer = postadickpic(host, "\n");
     send(httpC, buffer.c_str(), buffer.length(), 0);
@@ -349,7 +361,7 @@ void post_answer(char *answer, ServerInfo* server) {
     cout << response << endl;
     cout << "==================================" << endl;
     cout << endl;
-
+    */
     printf("[*] Authorization complete. Lets go home\n");
 
 } 

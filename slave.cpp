@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <queue>
+
 #include <mutex>
 #include <string.h>
 #include <string>
@@ -54,13 +55,13 @@ class ServerInfo
 
 void *snooper(void* serv_info) {
     unsigned int S[1] = {10}; // S value
-    int i = 0;
+    //int i = 0;
     ServerInfo *server_info = (ServerInfo*)serv_info;
     int client_fd = server_info->get_socket();
     struct sockaddr_in serv_addr = server_info->get_sockstruct();
     while (1) {
-
-        i%2 ? (S[0]--):(S[0]++); i++;
+        S[0] =  9 + rand()%8;
+        //i%2 ? (S[0]--):(S[0]++); i++;
         unsigned int buffer[1] = {htonl(S[0])}; 
         if (sendto(client_fd, buffer,sizeof(buffer), 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
             printf("    => Error in sending the message\n");
@@ -77,7 +78,7 @@ void receive(ServerInfo *server_info, ServerInfo *master_info) {
     int client_fd = server_info->get_socket();
     struct sockaddr_in serv_addr = server_info->get_sockstruct();
     struct timeval timeout;
-    char *response = (char*)calloc(30, sizeof(char));
+    char response[30];
     int ret;
     while (1) {
         //printf("[*] Awaiting for response from the server...\n");
@@ -86,21 +87,20 @@ void receive(ServerInfo *server_info, ServerInfo *master_info) {
         timeout.tv_sec = 5;
         timeout.tv_usec = 0;
         ret = select(client_fd+1, &readfds, NULL, NULL, &timeout);
+        mtx.lock();
         if (ret == -1) {
             cout << "[-] select failed: " << errno << endl;
+            close(client_fd);
             exit(1);
         }
-        mtx.lock();
         socklen_t addrlen = sizeof(serv_addr);
         if (recvfrom(client_fd, response, sizeof(response), 0, (struct sockaddr *)&serv_addr, &addrlen) < 0) {
             printf("    => Error in receiving the message\n");
             exit(1);
         }
-        cout << response << endl;
         warp(&response[0]);
-        cout << "warped response" << response << endl;
         send(master_fd, response, sizeof(response), 0);
-        memset(response, 0, 20);
+        memset(response, 0, 30);
         mtx.unlock();
     }
 }
@@ -135,7 +135,7 @@ int main (int argc, char*argv[]) {
     //int portNo = 8119;
     int client_fd;
     int ret=0;
-
+    srand(time(NULL));
 
     if (argc != 5) {
         cout << "[-] Usage: " << argv[0] << " <server_ip> <server_port> <master_ip> <master_port>" << endl;
