@@ -162,6 +162,7 @@ int main (int argc, char*argv[]) {
         cout << "    => Error in creating slave socket" << endl;
         exit(1);
     }
+
     cout << "[*] Successfully created the socket" << endl;
     ServerInfo master_info = ServerInfo(argv[3], argv[4], slave);
     cout << "[*] Awaiting for master to acccept connection" << endl;
@@ -171,6 +172,12 @@ int main (int argc, char*argv[]) {
         exit(1);
     }
     cout << "[*] Connection established" << endl;
+    opt = 1;
+    ret = ioctl(slave, FIONBIO, &opt);
+    if (ret == -1) {
+        cout << "[-] ioctl failed: " << errno << endl;
+        return -1;
+    }
     pthread_t send;
     pthread_create(&send, NULL, snooper, (void*)&server_info);
     receive(&server_info, &master_info);
