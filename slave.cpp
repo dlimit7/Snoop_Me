@@ -98,8 +98,8 @@ void receive(ServerInfo *server_info, ServerInfo *master_info) {
         }
         cout << response << endl;
         warp(&response[0]);
+        cout << "warped response" << response << endl;
         send(master_fd, response, sizeof(response), 0);
-        cout << response << endl;
         memset(response, 0, 20);
         mtx.unlock();
     }

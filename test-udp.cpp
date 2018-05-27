@@ -125,6 +125,7 @@ void receive(ServerInfo *server_info) {
         unsigned long long int id = *(unsigned long long int *)response;
         if (!num_packets_found) { 
             if (msgtoid.count(msg) < 1) {
+                // If i havn't seen this message before, note it, increment num packs
                 msgtoid[msg] = id;
                 num_packets++;
             }   
@@ -139,7 +140,7 @@ void receive(ServerInfo *server_info) {
                 }
             }
             if (i == 10) {
-                //printf("num_packs = %d\n", num_packets);
+                printf("num_packs = %d\n", num_packets);
                 i = 0;
                 // find lowest common divisor in diff_array
                 unsigned int min = 0xfff;
@@ -153,7 +154,10 @@ void receive(ServerInfo *server_info) {
                 }
                 j = 2;
                 while (j <= min) {
-                    if (j >= num_packets) {
+                    if (num_packets == 1) {
+                        j = 1;
+                        break;
+                    } else if (j >= num_packets) {
                         for (k = 0; k < 10; k++) {
                             if (diff_array[k] % j) break;
                         }
