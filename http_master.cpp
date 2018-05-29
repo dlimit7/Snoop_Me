@@ -150,12 +150,13 @@ int main (int argc, char *argv[]) {
     unsigned int count = 0;
     int offsetFound = -1;
     unsigned int k;
-    fd_set read_fds;
-    FD_ZERO(&read_fds);
-    FD_SET(slave_fd[0], &read_fds);
-    FD_SET(slave_fd[1], &read_fds);
+ 
 
     while (1) {
+        fd_set read_fds;
+        FD_ZERO(&read_fds);
+        FD_SET(slave_fd[0], &read_fds);
+        FD_SET(slave_fd[1], &read_fds);
         int activity = select(slave_fd[1]+1, &read_fds, NULL, NULL, NULL);
 
         switch(activity) {
@@ -219,6 +220,7 @@ int main (int argc, char *argv[]) {
                             if (k == i) break;
                             j++;    
                         }
+                        if ((j > min) && ( (min%num_packets==0) || (num_packets%min==0))) j = (num_packets>min)?min:num_packets;
                         printf("number of packets = %d\n", j);
                         num_packets_found = j;
                         //while(1);
@@ -281,6 +283,10 @@ int main (int argc, char *argv[]) {
                         // reset
                         recv(slave_fd[0], buffer1, sizeof(buffer1),0);
                         recv(slave_fd[0], buffer1, sizeof(buffer1),0);
+                        recv(slave_fd[0], buffer1, sizeof(buffer1),0);
+                        recv(slave_fd[1], buffer1, sizeof(buffer1),0);
+                        recv(slave_fd[1], buffer1, sizeof(buffer1),0);
+                        recv(slave_fd[1], buffer1, sizeof(buffer1),0);
                         i = 0;
                         num_packets_found = 0;
                         num_packets = 0;
