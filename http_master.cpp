@@ -129,6 +129,12 @@ int main (int argc, char *argv[]) {
             cout << "   => Error accepting incoming client" << endl;
             exit(1);
         }
+        slave_fd[2] = accept(readSockets_fd[i], (struct sockaddr*)&master_addr[i], &size);
+        // the accepted slave_fd descripter had been set to non blocking. I think this property maintains.
+        if (slave_fd[2] < 0) {
+            cout << "   => Error accepting incoming client" << endl;
+            exit(1);
+        }
     }
     printf("[*] Read sockets created!\n");
 
@@ -157,7 +163,8 @@ int main (int argc, char *argv[]) {
         FD_ZERO(&read_fds);
         FD_SET(slave_fd[0], &read_fds);
         FD_SET(slave_fd[1], &read_fds);
-        int activity = select(slave_fd[1]+1, &read_fds, NULL, NULL, NULL);
+        FD_SET(slave_fd[2], &read_fds);
+        int activity = select(slave_fd[2]+1, &read_fds, NULL, NULL, NULL);
 
         switch(activity) {
             case -1:
@@ -172,6 +179,8 @@ int main (int argc, char *argv[]) {
                     recv(slave_fd[0], buffer1, sizeof(buffer1),0);
                 } else if (FD_ISSET(slave_fd[1], &read_fds)) {
                     recv(slave_fd[1], buffer1, sizeof(buffer1),0);
+                } else if (FD_ISSET(slave_fd[2], &read_fds)) {
+                    recv(slave_fd[2], buffer1, sizeof(buffer1),0);
                 }
                 //printf("buffer content %s\n", buffer1);
                 strcpy(msg,buffer1+8);
