@@ -197,11 +197,12 @@ int main (int argc, char *argv[]) {
                     if (first_char == 0x4) {
                         //printf("id 0x%llx - msgtoid[msg] 0x%llx\n\n\n\n\n", id, msgtoid[msg]);
                         if ((diff = (unsigned int)(id - msgtoid[msg])) > 0) {
-                            if (diff == 0) exit(1);
-                            //while(1);
-                            // update id and record diff
-                            msgtoid[msg] = id;
-                            diff_array[i++] = diff;
+                            if (diff != 0) {
+                                //while(1);
+                                // update id and record diff
+                                msgtoid[msg] = id;
+                                diff_array[i++] = diff;
+                            }
                         }
                     }
                     if (i == 3) {
@@ -230,7 +231,7 @@ int main (int argc, char *argv[]) {
                             j++;    
                         }
                         if ((j > min) && ( (min%num_packets==0) || (num_packets%min==0))) j = (num_packets>min)?min:num_packets;
-                        printf("number of packets = %d\n", j);
+                        printf("number of packets = %d\n\n\n\n\n\n", j);
                         num_packets_found = j;
                         //while(1);
                         // malloc an array of num_packets amount of strings of size 20
@@ -243,6 +244,7 @@ int main (int argc, char *argv[]) {
                         i = 0;
                    }
                 } else {
+                    printf("Count is %d total packets = %d \n\n\n\n", count, num_packets_found);
                     /*
                      *
                      *  Packet reconstruction
@@ -271,7 +273,8 @@ int main (int argc, char *argv[]) {
                             checklist[index] = 1;
                         } else {
                             // Check if duplicates exist
-                            if (index != msg_map[msg] && checklist[index] == 1) {
+                            if (checklist[index] == 0 && index != msg_map[msg]) {
+                                count++;
                                 int diff = index - msg_map[msg];
                                 index = msg_map[msg] + diff;
                                 msg_map[msg] = index;
@@ -296,6 +299,9 @@ int main (int argc, char *argv[]) {
                         recv(slave_fd[1], buffer1, sizeof(buffer1),0);
                         recv(slave_fd[1], buffer1, sizeof(buffer1),0);
                         recv(slave_fd[1], buffer1, sizeof(buffer1),0);
+                        recv(slave_fd[2], buffer1, sizeof(buffer1),0);
+                        recv(slave_fd[2], buffer1, sizeof(buffer1),0);
+                        recv(slave_fd[2], buffer1, sizeof(buffer1),0);
                         i = 0;
                         num_packets_found = 0;
                         num_packets = 0;
