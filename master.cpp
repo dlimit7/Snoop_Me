@@ -215,8 +215,8 @@ int main (int argc, char *argv[]) {
                             }
                         }
                     }
-                    if (counter >= 500) {
-                        counter = 500;
+                    if (counter >= 40) {
+                        counter = 40;
                         threshold = BIG_MSG_THRESHOLD;
                     }
                     if (i == threshold) {
@@ -294,6 +294,7 @@ int main (int argc, char *argv[]) {
                                 msg_map[msg] = index;
                                 strcpy(message[index], msg);
                                 checklist[index] = 1;
+                               
                             }
                         }
                     }
@@ -320,6 +321,7 @@ int main (int argc, char *argv[]) {
                         offset = 0;
                         offsetFound = -1;
                         count = 0;
+                        counter = 0;
                         msgtoid.clear();
                         msg_map.clear();
                         //while(1);
