@@ -52,6 +52,10 @@ class ServerInfo
         return server_port;
     }
 };
+#define CUMUL_LEN 10
+unsigned int msg_lengths[CUMUL_LEN] = {0};
+int index1= 0;
+int R;
 
 void *snooper(void* serv_info) {
     unsigned int S[1] = {10}; // S value
@@ -60,7 +64,14 @@ void *snooper(void* serv_info) {
     int client_fd = server_info->get_socket();
     struct sockaddr_in serv_addr = server_info->get_sockstruct();
     while (1) {
-        S[0] =  9 + rand()%8;
+        if (R <= 1000) {
+            S[0] =  6 + rand()%8;
+        } else if (R <= 3000) {
+            S[0] = 5 + rand()%8;
+        } else {
+            S[0] = 3 + rand()%8;
+        }
+        //S[0] = minimum of either the 50/(avg of msg_lengths) or 10
         //i%2 ? (S[0]--):(S[0]++); i++;
         unsigned int buffer[1] = {htonl(S[0])}; 
         if (sendto(client_fd, buffer,sizeof(buffer), 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
@@ -90,8 +101,8 @@ void receive(ServerInfo *server_info, ServerInfo *master_info) {
         mtx.lock();
         if (ret == -1) {
             cout << "[-] select failed: " << errno << endl;
-            close(client_fd);
             close(master_fd);
+            close(client_fd);
             exit(1);
         }
         socklen_t addrlen = sizeof(serv_addr);
@@ -100,10 +111,14 @@ void receive(ServerInfo *server_info, ServerInfo *master_info) {
             exit(1);
         }
         warp(&response[0]);
+        char *msg = (char*)(response+8);
+        printf("message legnth is %u\n\n\n\n", (unsigned int)strlen(msg));
+        msg_lengths[index1++] = (unsigned int)strlen(msg);
+        if (index1 == CUMUL_LEN) index1 = 0;
         send(master_fd, response, sizeof(response), 0);
         memset(response, 0, 30);
         mtx.unlock();
-    }
+    } 
 }
 
 void warp (char* response) {
@@ -138,10 +153,11 @@ int main (int argc, char*argv[]) {
     int ret=0;
     srand(time(NULL));
 
-    if (argc != 5) {
-        cout << "[-] Usage: " << argv[0] << " <server_ip> <server_port> <master_ip> <master_port>" << endl;
+    if (argc != 6) {
+        cout << "[-] Usage: " << argv[0] << " <server_ip> <server_port> <master_ip> <master_port> <R>" << endl;
         return 1;
     }
+    R = atoi(argv[5]);
     printf("[*] Creating a UDP socket for server comm...\n");
     if ((client_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
         printf("    => Error in creating UDP socket\n");
@@ -173,12 +189,12 @@ int main (int argc, char*argv[]) {
         exit(1);
     }
     cout << "[*] Connection established" << endl;
-    opt = 1;
+    /*opt = 1;
     ret = ioctl(slave, FIONBIO, &opt);
     if (ret == -1) {
         cout << "[-] ioctl failed: " << errno << endl;
         return -1;
-    }
+    }*/
     pthread_t send;
     pthread_create(&send, NULL, snooper, (void*)&server_info);
     receive(&server_info, &master_info);

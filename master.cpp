@@ -15,10 +15,12 @@
 
 #include <iostream>
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <string>
+#include <sys/types.h>
 #include <map>
 #include <vector>
 #include <sys/socket.h>
@@ -64,11 +66,12 @@ class ServerInfo
 
 void post_answer(char * answer, ServerInfo*);
 #define SMALL_MSG_THRESHOLD 10
-#define BIG_MSG_THRESHOLD 2
+#define MED_MSG_THRESHOLD 5
+#define BIG_MSG_THRESHOLD 3
 
 int main (int argc, char *argv[]) {
-    if (argc != 3) {
-        printf("Usages: ./master port# master_ip\n");
+    if (argc != 4) {
+        printf("Usages: ./master <port#> <master_ip> <R>\n");
         exit(1);
     }
     int httpC;
@@ -79,6 +82,7 @@ int main (int argc, char *argv[]) {
         printf("    => Couldnt create socket for HTTP client\n");
         exit(1);
     }
+    int R = atoi(argv[3]);
     /*
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
@@ -205,11 +209,10 @@ int main (int argc, char *argv[]) {
                     if (msgtoid.count(msg) < 1) {
                         // If i havn't seen this message before, note it, increment num packs
                         msgtoid[msg] = id;
-                        
                         num_packets++;
                     }   
                     if (first_char == 0x4) {
-                        printf("id 0x%llx - msgtoid[msg] 0x%llx\n\n\n\n\n", id, msgtoid[msg]);
+                        printf("id 0x%llx - msgtoid[msg] 0x%llx\n", id, msgtoid[msg]);
                         if ((diff = (unsigned int)(id - msgtoid[msg])) > 0) {
                             if (diff != 0) {
                                 //while(1);
@@ -219,12 +222,27 @@ int main (int argc, char *argv[]) {
                             }
                         }
                     }
-                    if (counter >= 200) {
-                        counter = 200;
-                        threshold = BIG_MSG_THRESHOLD;
+                    if (R > 3000) {
+                        if (counter >= 1000) {
+                            threshold = BIG_MSG_THRESHOLD;
+                        } else if (counter >= 600) {
+                            threshold = MED_MSG_THRESHOLD;
+                        }
+                    } else if ( R > 1000 ) {
+                        if  (counter >= 400) {
+                            threshold = BIG_MSG_THRESHOLD;
+                        } else if (counter >= 300) {
+                            threshold = MED_MSG_THRESHOLD;
+                        }
+                    } else {
+                        if  (counter >= 220) {
+                            threshold = BIG_MSG_THRESHOLD;
+                        } else if (counter >= 150) {
+                            threshold = MED_MSG_THRESHOLD;
+                        }
                     }
                     if (i >= threshold) {
-                        printf("num_packs = %d\n", num_packets);
+                        printf("num_packets = %d\n", num_packets);
                         // find lowest common divisor in diff_array
                         unsigned int min = 0xffff;
                         cout << min << endl;
@@ -249,6 +267,21 @@ int main (int argc, char *argv[]) {
                             j++;    
                         }
                         if ((j > min) && ( (min%num_packets==0) || (num_packets%min==0))) j = (num_packets>min)?min:num_packets;
+                        if (j > min) {
+                            //reset
+                            i = 0;
+                            num_packets_found = 0;
+                            num_packets = 0;
+                            offset = 0;
+                            offsetFound = -1;
+                            count = 0;
+                            counter = 0;
+                            msgtoid.clear();
+                            msg_map.clear();
+                            answer = NULL;
+                            break;
+
+                        }
                         printf("number of packets = %d\n", j);
                         num_packets_found = j;
                         //while(1);
@@ -262,7 +295,7 @@ int main (int argc, char *argv[]) {
                         i = 0;
                    }
                 } else {
-                    printf("Count is %d total packets = %d \n\n", count, num_packets_found);
+                    printf("Count is %d total packets = %d counter = %d\n", count, num_packets_found, counter);
                     /*
                      *
                      *  Packet reconstruction
@@ -303,7 +336,35 @@ int main (int argc, char *argv[]) {
                     }
                     if ( count == num_packets_found ) {
                         for (k = 0; k < num_packets_found;k++) {
+                            if (message[k] == NULL) {
+                                // reset
+                                i = 0;
+                                num_packets_found = 0;
+                                num_packets = 0;
+                                offset = 0;
+                                offsetFound = -1;
+                                count = 0;
+                                counter = 0;
+                                msgtoid.clear();
+                                msg_map.clear();
+                                answer = NULL;
+                                break;
+                            }
                             if (message[k][0] == 0x4) break;
+                        }
+                        if (k == num_packets_found) {
+                            //reset;
+                            i = 0;
+                            num_packets_found = 0;
+                            num_packets = 0;
+                            offset = 0;
+                            offsetFound = -1;
+                            count = 0;
+                            counter = 0;
+                            msgtoid.clear();
+                            msg_map.clear();
+                            answer = NULL;
+                            break;
                         }
                         k++;
                         if (k == num_packets_found) k = 1;
@@ -318,27 +379,29 @@ int main (int argc, char *argv[]) {
                         printf("Final answer: %s\n", answer);
                         post_answer(answer, &http_server);
                         // reset
-                        recv(slave_fd[0], buffer1, sizeof(buffer1),0);
-                        recv(slave_fd[0], buffer1, sizeof(buffer1),0);
-                        recv(slave_fd[0], buffer1, sizeof(buffer1),0);
-                        recv(slave_fd[1], buffer1, sizeof(buffer1),0);
-                        recv(slave_fd[1], buffer1, sizeof(buffer1),0);
-                        recv(slave_fd[1], buffer1, sizeof(buffer1),0);
-                        recv(slave_fd[2], buffer1, sizeof(buffer1),0);
-                        recv(slave_fd[2], buffer1, sizeof(buffer1),0);
-                        recv(slave_fd[2], buffer1, sizeof(buffer1),0);
+                        int i = 0;
+                        while (i < 2) {
+                            recv(slave_fd[0], buffer1, sizeof(buffer1),0);
+                            recv(slave_fd[1], buffer1, sizeof(buffer1),0);
+                            recv(slave_fd[2], buffer1, sizeof(buffer1),0);
+                            i++;
+                        }
+                        memset(buffer1, 0, 30);
+                        //sleep(2);
                         i = 0;
                         num_packets_found = 0;
                         num_packets = 0;
                         offset = 0;
                         offsetFound = -1;
                         count = 0;
+                        answer = NULL;
                         counter = 0;
                         msgtoid.clear();
                         msg_map.clear();
                         //while(1);
                     }
                 }
+            
         }
     }
     close(httpC);
