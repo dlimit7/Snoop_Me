@@ -64,7 +64,7 @@ class ServerInfo
 
 void post_answer(char * answer, ServerInfo*);
 #define SMALL_MSG_THRESHOLD 10
-#define BIG_MSG_THRESHOLD 2
+#define BIG_MSG_THRESHOLD 3
 
 int main (int argc, char *argv[]) {
     if (argc != 3) {
@@ -167,7 +167,6 @@ int main (int argc, char *argv[]) {
 
     unsigned int threshold = SMALL_MSG_THRESHOLD;
     unsigned int counter = 0;
-    struct timeval timeout;
     while (1) {
         counter++;
         fd_set read_fds;
@@ -175,14 +174,11 @@ int main (int argc, char *argv[]) {
         FD_SET(slave_fd[0], &read_fds);
         FD_SET(slave_fd[1], &read_fds);
         FD_SET(slave_fd[2], &read_fds);
-        timeout.tv_sec = 5;
-        timeout.tv_usec = 0;
-        int activity = select(slave_fd[2]+1, &read_fds, NULL, NULL, &timeout);
+        int activity = select(slave_fd[2]+1, &read_fds, NULL, NULL, NULL);
 
         switch(activity) {
             case -1:
-                cout << "No more response" << endl;
-                close(httpC);
+                cout << "Problem with select" << endl;
                 exit(1);
             case 0:
                 cout << "Problem with select" << endl;
@@ -199,7 +195,7 @@ int main (int argc, char *argv[]) {
                 //printf("buffer content %s\n", buffer1);
                 strcpy(msg,buffer1+8);
                 char first_char = msg[0];
-                //cout << "message is \"" << msg << "\"" << endl; 
+                cout << "message is \"" << msg << "\"" << endl; 
                 unsigned long long int id = *(unsigned long long int *)buffer1;
                 if (num_packets_found == 0) { 
                     if (msgtoid.count(msg) < 1) {
@@ -209,7 +205,7 @@ int main (int argc, char *argv[]) {
                         num_packets++;
                     }   
                     if (first_char == 0x4) {
-                        printf("id 0x%llx - msgtoid[msg] 0x%llx\n\n\n\n\n", id, msgtoid[msg]);
+                        //printf("id 0x%llx - msgtoid[msg] 0x%llx\n\n\n\n\n", id, msgtoid[msg]);
                         if ((diff = (unsigned int)(id - msgtoid[msg])) > 0) {
                             if (diff != 0) {
                                 //while(1);
@@ -219,11 +215,11 @@ int main (int argc, char *argv[]) {
                             }
                         }
                     }
-                    if (counter >= 200) {
-                        counter = 200;
+                    if (counter >= 40) {
+                        counter = 40;
                         threshold = BIG_MSG_THRESHOLD;
                     }
-                    if (i >= threshold) {
+                    if (i == threshold) {
                         printf("num_packs = %d\n", num_packets);
                         // find lowest common divisor in diff_array
                         unsigned int min = 0xffff;
@@ -232,7 +228,7 @@ int main (int argc, char *argv[]) {
                         for (j = 0; j < i; j++) {
                             if (diff_array[j] < min) {
                                 min = diff_array[j];
-                                printf("min is %d j is %d diff[j]  is %d\n", min, j, diff_array[j]);   
+                                printf("min is %d j is %d diff[j]  is %d\n\n\n\n\n", min, j, diff_array[j]);   
                             }
                         }
                         j = 2;
@@ -249,7 +245,7 @@ int main (int argc, char *argv[]) {
                             j++;    
                         }
                         if ((j > min) && ( (min%num_packets==0) || (num_packets%min==0))) j = (num_packets>min)?min:num_packets;
-                        printf("number of packets = %d\n", j);
+                        printf("number of packets = %d\n\n\n\n\n\n", j);
                         num_packets_found = j;
                         //while(1);
                         // malloc an array of num_packets amount of strings of size 20
@@ -262,13 +258,14 @@ int main (int argc, char *argv[]) {
                         i = 0;
                    }
                 } else {
-                    printf("Count is %d total packets = %d \n\n", count, num_packets_found);
+                    printf("Count is %d total packets = %d \n\n\n\n", count, num_packets_found);
                     /*
                      *
                      *  Packet reconstruction
                      *
                      */
-                    if (offsetFound<0) {
+                    if (first_char == 0x4 && offsetFound<0) {
+                        printf("first eom found\n");
                         count++;
                         offsetFound = 1;
                         index = id % num_packets_found;
@@ -302,18 +299,9 @@ int main (int argc, char *argv[]) {
                         }
                     }
                     if ( count == num_packets_found ) {
-                        for (k = 0; k < num_packets_found;k++) {
-                            if (message[k][0] == 0x4) break;
-                        }
-                        k++;
-                        if (k == num_packets_found) k = 1;
-                        strcpy(answer, message[k]);
-                        for (count = k+1; count < num_packets_found; count++) {
-                            strcat(answer, message[count]);
-                        }
-                        //printf("all g?\n");
-                        for (count = 0; count < k; count++) {
-                            strcat(answer, message[count]);
+                        strcpy(answer, message[0]);
+                        for (k = 1; k < num_packets_found; k++) {
+                            strcat(answer, message[k]);
                         }
                         printf("Final answer: %s\n", answer);
                         post_answer(answer, &http_server);

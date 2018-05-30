@@ -91,6 +91,7 @@ void receive(ServerInfo *server_info, ServerInfo *master_info) {
         if (ret == -1) {
             cout << "[-] select failed: " << errno << endl;
             close(client_fd);
+            close(master_fd);
             exit(1);
         }
         socklen_t addrlen = sizeof(serv_addr);

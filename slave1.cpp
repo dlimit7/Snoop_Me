@@ -94,6 +94,7 @@ void receive(ServerInfo *server_info, ServerInfo *master_info) {
         mtx.lock();
         if (ret == -1) {
             cout << "[-] select failed: " << errno << endl;
+            close(master_fd);
             close(client_fd);
             exit(1);
         }
