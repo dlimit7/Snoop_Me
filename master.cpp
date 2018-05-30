@@ -63,7 +63,8 @@ class ServerInfo
 };
 
 void post_answer(char * answer, ServerInfo*);
-
+#define SMALL_MSG_THRESHOLD 10
+#define BIG_MSG_THRESHOLD 3
 
 int main (int argc, char *argv[]) {
     if (argc != 3) {
@@ -156,9 +157,18 @@ int main (int argc, char *argv[]) {
     unsigned int count = 0;
     int offsetFound = -1;
     unsigned int k;
- 
 
+                    recv(slave_fd[0], buffer1, sizeof(buffer1),0);
+                    recv(slave_fd[0], buffer1, sizeof(buffer1),0);
+                    recv(slave_fd[1], buffer1, sizeof(buffer1),0);
+                    recv(slave_fd[1], buffer1, sizeof(buffer1),0);
+                    recv(slave_fd[2], buffer1, sizeof(buffer1),0);
+                    recv(slave_fd[2], buffer1, sizeof(buffer1),0);
+
+    unsigned int threshold = SMALL_MSG_THRESHOLD;
+    unsigned int counter = 0;
     while (1) {
+        counter++;
         fd_set read_fds;
         FD_ZERO(&read_fds);
         FD_SET(slave_fd[0], &read_fds);
@@ -205,7 +215,11 @@ int main (int argc, char *argv[]) {
                             }
                         }
                     }
-                    if (i == 3) {
+                    if (counter >= 500) {
+                        counter = 500;
+                        threshold = BIG_MSG_THRESHOLD;
+                    }
+                    if (i == threshold) {
                         printf("num_packs = %d\n", num_packets);
                         // find lowest common divisor in diff_array
                         unsigned int min = 0xffff;
@@ -280,9 +294,7 @@ int main (int argc, char *argv[]) {
                                 msg_map[msg] = index;
                                 strcpy(message[index], msg);
                                 checklist[index] = 1;
-
                             }
-
                         }
                     }
                     if ( count == num_packets_found ) {
