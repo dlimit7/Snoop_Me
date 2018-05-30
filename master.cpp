@@ -213,7 +213,8 @@ int main (int argc, char *argv[]) {
                     }   
                     if (first_char == 0x4) {
                         printf("id 0x%llx - msgtoid[msg] 0x%llx\n", id, msgtoid[msg]);
-                        if ((diff = (unsigned int)(id - msgtoid[msg])) > 0) {
+                        diff = (unsigned int)(id - msgtoid[msg]);
+                        if (diff > 0) {
                             if (diff != 0) {
                                 //while(1);
                                 // update id and record diff
@@ -254,6 +255,7 @@ int main (int argc, char *argv[]) {
                             }
                         }
                         j = 2;
+                        k = 0;
                         while (j <= min) {
                             if (num_packets == 1) {
                                 j = 1;
@@ -267,7 +269,7 @@ int main (int argc, char *argv[]) {
                             j++;    
                         }
                         if ((j > min) && ( (min%num_packets==0) || (num_packets%min==0))) j = (num_packets>min)?min:num_packets;
-                        if (j > min) {
+                        if (num_packets > min) {
                             //reset
                             i = 0;
                             num_packets_found = 0;
@@ -367,7 +369,7 @@ int main (int argc, char *argv[]) {
                             break;
                         }
                         k++;
-                        if (k == num_packets_found) k = 1;
+                        if (k == num_packets_found) k = 0;
                         strcpy(answer, message[k]);
                         for (count = k+1; count < num_packets_found; count++) {
                             strcat(answer, message[count]);
