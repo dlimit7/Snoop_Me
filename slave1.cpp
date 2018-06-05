@@ -65,11 +65,11 @@ void *snooper(void* serv_info) {
     struct sockaddr_in serv_addr = server_info->get_sockstruct();
     while (1) {
         if (R <= 1000) {
-            S[0] = 6 + rand()%8;
+            S[0] = 7 + rand()%8;
         } else if (R <= 3000) {
-            S[0] = 5 + rand()%8;
+            S[0] = 6 + rand()%8;
         } else {
-            S[0] = 3 + rand()%8;
+            S[0] = 4 + rand()%8;
         }
         //S[0] = minimum of either the 50/(avg of msg_lengths) or 10
         //i%2 ? (S[0]--):(S[0]++); i++;

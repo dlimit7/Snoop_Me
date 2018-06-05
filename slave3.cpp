@@ -65,7 +65,7 @@ void *snooper(void* serv_info) {
     struct sockaddr_in serv_addr = server_info->get_sockstruct();
     while (1) {
         if (R <= 1000) {
-            S[0] =  6 + rand()%8;
+            S[0] =  7 + rand()%8;
         } else if (R <= 3000) {
             S[0] = 5 + rand()%8;
         } else {

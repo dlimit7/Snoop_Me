@@ -216,7 +216,6 @@ int main (int argc, char *argv[]) {
                         diff = (unsigned int)(id - msgtoid[msg]);
                         if (diff > 0) {
                             if (diff != 0) {
-                                //while(1);
                                 // update id and record diff
                                 msgtoid[msg] = id;
                                 diff_array[i++] = diff;
@@ -287,6 +286,7 @@ int main (int argc, char *argv[]) {
                         printf("number of packets = %d\n", j);
                         num_packets_found = j;
                         //while(1);
+
                         // malloc an array of num_packets amount of strings of size 20
                         message = (char**) calloc(num_packets_found , sizeof(char*));
                         answer = (char*)malloc(num_packets_found*20);
@@ -294,6 +294,7 @@ int main (int argc, char *argv[]) {
                         for (k = 0; k < num_packets_found; k++) {
                             message[k] = (char*)malloc(20);
                         }
+
                         i = 0;
                    }
                 } else {
@@ -319,7 +320,7 @@ int main (int argc, char *argv[]) {
                         index = (index+offset)%num_packets_found;
                         if (msg_map.count(msg) == 0) {
                             strcpy(message[index], msg);
-                            msg_map[msg] = id;
+                            msg_map[msg] = index;
                             printf("Message packet is \"%s\" at index %d\n", message[index], index);
                             count++;
                             checklist[index] = 1;
@@ -400,6 +401,8 @@ int main (int argc, char *argv[]) {
                         counter = 0;
                         msgtoid.clear();
                         msg_map.clear();
+                        free(checklist);
+                        free(answer);
                         //while(1);
                     }
                 }
