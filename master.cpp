@@ -83,15 +83,6 @@ int main (int argc, char *argv[]) {
         exit(1);
     }
     int R = atoi(argv[3]);
-    /*
-    memset(&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(portNo);
-    printf("[*] Validating IP Address...\n");
-    if (inet_pton(AF_INET, "149.171.36.173", &serv_addr.sin_addr) <= 0) {
-        printf("Invalid Address\n");
-        exit(1);
-    }*/
     ServerInfo http_server = ServerInfo(ip, portNo, httpC);
     struct sockaddr_in http_addr = http_server.get_sockstruct();    
     printf("[*] Attempting connection with the http server...\n");
@@ -99,7 +90,6 @@ int main (int argc, char *argv[]) {
         printf("    => Error in connection attempt\n");
         exit(1);
     }
-
     int readSockets_fd[1];
     int slave_fd[3];
     struct sockaddr_in master_addr[1];
@@ -161,14 +151,6 @@ int main (int argc, char *argv[]) {
     unsigned int count = 0;
     int offsetFound = -1;
     unsigned int k;
-
-                    recv(slave_fd[0], buffer1, sizeof(buffer1),0);
-                    recv(slave_fd[0], buffer1, sizeof(buffer1),0);
-                    recv(slave_fd[1], buffer1, sizeof(buffer1),0);
-                    recv(slave_fd[1], buffer1, sizeof(buffer1),0);
-                    recv(slave_fd[2], buffer1, sizeof(buffer1),0);
-                    recv(slave_fd[2], buffer1, sizeof(buffer1),0);
-
     unsigned int threshold = SMALL_MSG_THRESHOLD;
     unsigned int counter = 0;
     struct timeval timeout;
@@ -371,6 +353,7 @@ int main (int argc, char *argv[]) {
                         }
                         k++;
                         if (k == num_packets_found) k = 0;
+                        // message stitcher
                         strcpy(answer, message[k]);
                         for (count = k+1; count < num_packets_found; count++) {
                             strcat(answer, message[count]);
@@ -381,7 +364,7 @@ int main (int argc, char *argv[]) {
                         }
                         printf("Final answer: %s\n", answer);
                         post_answer(answer, &http_server);
-                        // reset
+                        // reset, clear buffer
                         int i = 0;
                         while (i < 2) {
                             recv(slave_fd[0], buffer1, sizeof(buffer1),0);
@@ -390,7 +373,6 @@ int main (int argc, char *argv[]) {
                             i++;
                         }
                         memset(buffer1, 0, 30);
-                        //sleep(2);
                         i = 0;
                         num_packets_found = 0;
                         num_packets = 0;
@@ -403,7 +385,6 @@ int main (int argc, char *argv[]) {
                         msg_map.clear();
                         free(checklist);
                         free(answer);
-                        //while(1);
                     }
                 }
             

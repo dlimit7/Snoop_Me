@@ -59,7 +59,6 @@ int R;
 
 void *snooper(void* serv_info) {
     unsigned int S[1] = {10}; // S value
-    //int i = 0;
     ServerInfo *server_info = (ServerInfo*)serv_info;
     int client_fd = server_info->get_socket();
     struct sockaddr_in serv_addr = server_info->get_sockstruct();
@@ -71,8 +70,6 @@ void *snooper(void* serv_info) {
         } else {
             S[0] = 4 + rand()%8;
         }
-        //S[0] = minimum of either the 50/(avg of msg_lengths) or 10
-        //i%2 ? (S[0]--):(S[0]++); i++;
         unsigned int buffer[1] = {htonl(S[0])}; 
         if (sendto(client_fd, buffer,sizeof(buffer), 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
             printf("    => Error in sending the message\n");
